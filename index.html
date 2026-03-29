@@ -157,7 +157,7 @@
     </div>
   </div>
   <div class="header-meta">
-    Aktueller DOI-Kurs (CoinGecko)<br>
+    Aktueller DOI-Kurs<br>
     <strong id="live-price">Lade…</strong>
   </div>
 </header>
@@ -513,39 +513,55 @@ update();
 (async function fetchLivePrice() {
   const el = document.getElementById('live-price');
   const entryInput = document.getElementById('doi-entry');
-  // Primary: CoinGecko (CORS-enabled, public)
-  // Fallback: xt.com simple price
+
+  // Source 1: Coinpaprika REST API (CORS-enabled, public, no key needed)
+  // Source 2: xt.com via public ticker (CORS-Fallback)
   const sources = [
-    async () => {
-      const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=doichain&vs_currencies=usd&include_24hr_change=true');
-      const d = await r.json();
-      const price = d.doichain.usd;
-      const pct = d.doichain.usd_24h_change;
-      return { price, pct };
+    {
+      name: 'Coinpaprika',
+      fn: async () => {
+        const r = await fetch('https://api.coinpaprika.com/v1/tickers/doi-doichain');
+        const d = await r.json();
+        const price = d.quotes.USD.price;
+        const pct   = d.quotes.USD.percent_change_24h;
+        if (!price || price <= 0) throw new Error('invalid price');
+        return { price, pct };
+      }
     },
-    async () => {
-      const r = await fetch('https://api.coingecko.com/api/v3/coins/doichain?localization=false&tickers=true&market_data=false');
-      const d = await r.json();
-      const t = d.tickers && d.tickers.find(x => x.target === 'USDT');
-      return { price: t ? t.last : 0.056, pct: null };
+    {
+      name: 'xt.com',
+      fn: async () => {
+        const r = await fetch('https://sapi.xt.com/v4/public/ticker?symbol=doi_usdt');
+        const d = await r.json();
+        const ticker = d.result && d.result[0];
+        if (!ticker) throw new Error('no ticker');
+        const price = parseFloat(ticker.c);
+        const pct   = parseFloat(ticker.cr) * 100;
+        if (!price || price <= 0) throw new Error('invalid price');
+        return { price, pct };
+      }
     }
   ];
+
   for (const src of sources) {
     try {
-      const { price, pct } = await src();
-      if (!price || price <= 0) continue;
-      const sign = pct >= 0 ? '+' : '';
+      const { price, pct } = await src.fn();
+      const sign  = pct >= 0 ? '+' : '';
       const color = pct >= 0 ? '#34d399' : '#ff6b4a';
-      el.innerHTML = '<span style="color:var(--accent2);">$ ' + price.toFixed(5) + '</span>'
-        + (pct != null ? ' <span style="font-size:10px;color:' + color + ';">' + sign + pct.toFixed(2) + '% (24h)</span>' : '');
+      el.innerHTML =
+        '<span style="color:var(--accent2);">$ ' + price.toFixed(5) + '</span>'
+        + ' <span style="font-size:10px;color:' + color + ';">'
+        + sign + pct.toFixed(2) + '% (24h)</span>'
+        + ' <span style="font-size:9px;color:var(--muted);">via ' + src.name + '</span>';
       entryInput.value = price.toFixed(6);
       update();
       return;
     } catch(e) {
-      console.warn('Price source failed, trying next:', e);
+      console.warn(src.name + ' price fetch failed:', e.message);
     }
   }
-  el.innerHTML = '<span style="color:var(--accent2);">$ 0.056</span> <span style="font-size:10px;color:var(--muted);">(fallback)</span>';
+  // Both sources failed — show static fallback
+  el.innerHTML = '<span style="color:var(--accent2);">$ 0.056</span> <span style="font-size:10px;color:var(--muted);">(offline)</span>';
 })();
 </script>
 </body>
