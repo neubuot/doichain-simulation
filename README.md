@@ -1,5 +1,7 @@
 # Doichain Simulation
 
+[![Doichain Seal](https://doi-api.sendlabs.de/seal/github/neubuot/doichain-simulation/seal.svg)](https://doi-api.sendlabs.de/seal/github/neubuot/doichain-simulation)
+
 **Eine interaktive, browserbasierte Simulation zur Kursentwicklung von Doichain (DOI)** — auf Basis von organischem Kurswachstum, Community-Wachstum und dem Metcalfe'schen Netzwerkgesetz.
 
 > ⚠️ **Disclaimer:** Diese Simulation dient ausschließlich zu akademischen und spielerischen Lernzwecken. Sie stellt keine Anlageberatung, keine Finanzanalyse und keine Prognose dar. Alle Werte sind fiktive Modellrechnungen ohne Vorhersagekraft.
